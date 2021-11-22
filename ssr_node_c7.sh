@@ -2,16 +2,8 @@
 PATH=/bin:/sbin:/usr/bin:/usr/sbin:/usr/local/bin:/usr/local/sbin:~/bin
 export PATH
 cat << "EOF"
- ______                               ____              __      
-/\__  _\               __            /\  _`\           /\ \__   
-\/_/\ \/   ___   __  _/\_\    ___    \ \ \/\_\     __  \ \ ,_\  
-   \ \ \  / __`\/\ \/'\/\ \  /'___\   \ \ \/_/_  /'__`\ \ \ \/  
-    \ \ \/\ \L\ \/>  </\ \ \/\ \__/    \ \ \L\ \/\ \L\.\_\ \ \_ 
-     \ \_\ \____//\_/\_\\ \_\ \____\    \ \____/\ \__/.\_\\ \__\
-      \/_/\/___/ \//\/_/ \/_/\/____/     \/___/  \/__/\/_/ \/__/
-                                                                
-Author: Toxic Cat
-Github: https://github.com/Toxic-Cat/Airport-toolkit                                 
+Author: M1Screw
+Github: https://github.com/M1Screw/Airport-toolkit                               
 EOF
 echo "Shadowsocksr server installation script for CentOS 7 x64"
 [ $(id -u) != "0" ] && { echo "Error: You must be root to run this script!"; exit 1; }
@@ -70,10 +62,10 @@ if [[ ${is_auto} != "y" ]]; then
     	exit 0
 	fi
 fi
-echo "Checking if there any exist Shadowsocksr server software..."
+echo "Checking if there is any existing shadowsocksr server installation..."
 if [ -d "/soft/shadowsocks" ]; then
 	while :; do echo
-		echo -n "Detect exist shadowsocks server installation! If you continue this install, all the previous configuration will be lost! Continue?(Y/N)"
+		echo -n "Detect exist shadowsocksr server installation! If you continue this install, all the previous configuration will be lost! Continue?(Y/N)"
 		read is_clean_old
 		if [[ ${is_clean_old} != "y" && ${is_clean_old} != "Y" && ${is_clean_old} != "N" && ${is_clean_old} != "n" ]]; then
 			echo -n "Bad answer! Please only input number Y or N"
@@ -88,23 +80,25 @@ fi
 echo "Updatin exsit package..."
 yum clean all && rm -rf /var/cache/yum && yum update -y
 echo "Configurating EPEL release..."
-rpm -ivh https://dl.fedoraproject.org/pub/epel/7/x86_64/Packages/e/epel-release-7-11.noarch.rpm && yum makecache
+yum install epel-release -y && yum makecache
 echo "Install necessary package..."
-yum install python-pip git net-tools htop ntp -y
-yum install gcc gcc-c++ gcc-g77 flex bison autoconf automake bzip2-devel zlib-devel ncurses-devel libjpeg-devel libpng-devel libtiff-devel freetype-devel pam-devel openssl-devel libxml2-devel gettext-devel pcre-devel -y
+yum install git net-tools htop ntp -y
 echo "Disabling firewalld..."
 systemctl stop firewalld && systemctl disable firewalld
 echo "Setting system timezone..."
 timedatectl set-timezone Asia/Taipei && systemctl stop ntpd.service && ntpdate us.pool.ntp.org
 echo "Installing libsodium..."
 yum install libsodium -y
+echo "Installing Python3.6..."
+yum install python36 python36-pip -y
+echo "Installing Shadowsocksr server from GitHub..."
 mkdir /soft
-echo "Installing Shadowsocksr server from GitHub..."	
-cd /tmp && git clone -b manyuser https://github.com/NimaQu/shadowsocks.git	
+cd /tmp && git clone -b testing https://github.com/Anankke/shadowsocks-mod.git
+mv shadowsocks-mod shadowsocks
 mv -f shadowsocks /soft
 cd /soft/shadowsocks
-pip install --upgrade pip setuptools
-pip install -r requirements.txt
+pip3 install --upgrade pip setuptools
+pip3 install -r requirements.txt
 echo "Generating config file..."
 cp apiconfig.py userapiconfig.py
 cp config.json user-config.json
@@ -140,7 +134,7 @@ do_mu(){
 		read mu_regex
 		echo "Writting MU config..."
 	fi
-	sed -i -e "s/MU_SUFFIX = 'software-download.microsoft.com'/MU_SUFFIX = '${mu_suffix}'/g" -e "s/MU_REGEX = '%5m%id.%suffix'/MU_REGEX = '${mu_regex}'/g" userapiconfig.py
+	sed -i -e "s/MU_SUFFIX = 'zhaoj.in'/MU_SUFFIX = '${mu_suffix}'/g" -e "s/MU_REGEX = '%5m%id.%suffix'/MU_REGEX = '${mu_regex}'/g" userapiconfig.py
 }
 do_modwebapi(){
 	if [[ ${is_auto} != "y" ]]; then
@@ -175,7 +169,7 @@ do_glzjinmod(){
 		do_mu
 	fi
 	echo "Writting connection config..."
-	sed -i -e "s/NODE_ID = 0/NODE_ID = ${node_id}/g" -e "s/MYSQL_HOST = 'db.byelliot.top'/MYSQL_HOST = '${db_ip}'/g" -e "s/MYSQL_USER = 'root'/MYSQL_USER = '${db_user}'/g" -e "s/SPEEDTEST = '99999'/g" -e "s/CLOUDSAFE = '0'/g" -e "s/MYSQL_PASS = 'ss'/MYSQL_PASS = '${db_password}'/g" -e "s/MYSQL_DB = 'sspanel'/MYSQL_DB = '${db_name}'/g" userapiconfig.py
+	sed -i -e "s/NODE_ID = 0/NODE_ID = ${node_id}/g" -e "s/MYSQL_HOST = '127.0.0.1'/MYSQL_HOST = '${db_ip}'/g" -e "s/MYSQL_USER = 'ss'/MYSQL_USER = '${db_user}'/g" -e "s/MYSQL_PASS = 'ss'/MYSQL_PASS = '${db_password}'/g" -e "s/MYSQL_DB = 'shadowsocks'/MYSQL_DB = '${db_name}'/g" userapiconfig.py
 }
 if [[ ${is_auto} != "y" ]]; then
 	#Do the configuration
@@ -188,7 +182,7 @@ fi
 do_bbr(){
 	echo "Running system optimization and enable BBR..."
 	rpm --import https://www.elrepo.org/RPM-GPG-KEY-elrepo.org
-	rpm -Uvh http://www.elrepo.org/elrepo-release-7.0-3.el7.elrepo.noarch.rpm
+	rpm -Uvh https://www.elrepo.org/elrepo-release-7.el7.elrepo.noarch.rpm
 	yum remove kernel-headers -y
 	yum --enablerepo=elrepo-kernel install kernel-ml kernel-ml-headers -y
 	grub2-set-default 0
@@ -222,16 +216,10 @@ EOF
 }
 do_service(){
 	echo "Writting system config..."
-	wget https://raw.githubusercontent.com/SuicidalCat/Airport-toolkit/master/ssr_node.service
-	chmod 754 ssr_node.service && mv ssr_node.service /usr/lib/systemd/system
+	wget --no-check-certificate -O ssr_node.service https://raw.githubusercontent.com/SuicidalCat/Airport-toolkit/master/ssr_node.service.el7
+	chmod 664 ssr_node.service && mv ssr_node.service /etc/systemd/system
 	echo "Starting SSR Node Service..."
-	systemctl enable ssr_node && systemctl start ssr_node
-}
-do_salt_minion(){
-	echo "Installing Salt Minion..."
-	curl -L https://bootstrap.saltstack.com -o install_salt.sh && sudo sh install_salt.sh -P
-	echo "Writing Salt config..."
-	sed -i -e "s/#master: salt/master: ${salt_master_ip}/g" /etc/salt/minion
+	systemctl daemon-reload && systemctl enable ssr_node && systemctl start ssr_node
 }
 while :; do echo
 	echo -n "Do you want to enable BBR feature(from mainline kernel) and optimizate the system?(Y/N)"
@@ -251,27 +239,11 @@ while :; do echo
 		break
 	fi
 done
-while :; do echo
-	echo -n "Do you want to install Salt Minion?(Y/N)"
-	read is_salt_minion
-	if [[ ${is_salt_minion} != "y" && ${is_salt_minion} != "Y" && ${is_salt_minion} != "N" && ${is_salt_minion} != "n" ]]; then
-		echo -n "Bad answer! Please only input number Y or N"
-	elif [[ ${is_salt_minion} == "y" && ${is_salt_minion} == "Y" ]]; then
-		echo -n "Please enter Salt Master's IP address:"
-		read salt_master_ip
-		break
-	else
-		break
-	fi
-done
 if [[ ${is_bbr} == "y" || ${is_bbr} == "Y" ]]; then
 	do_bbr
 fi
 if [[ ${is_service} == "y" || ${is_service} == "Y" ]]; then
 	do_service
-fi
-if [[ ${is_salt_minion} == "y" || ${is_salt_minion} == "Y" ]]; then
-	do_salt_minion
 fi
 echo "System require a reboot to complete the installation process, press Y to continue, or press any key else to exit this script."
 read is_reboot
